@@ -7,8 +7,19 @@
 //
 
 #import "AppDelegate.h"
+#import <TencentOpenAPI/TencentOAuth.h>
 
-@interface AppDelegate ()
+
+
+
+@interface AppDelegate ()<TencentSessionDelegate>
+
+/** QQ分享*/
+@property(nonatomic, strong) TencentOAuth * tencentOAuth;
+
+/** 许可*/
+@property(nonatomic, strong) NSArray * permissions;
+
 
 @end
 
@@ -17,8 +28,96 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     // Override point for customization after application launch.
+    
+    //1. http://wiki.connect.qq.com/ 2. https://connect.qq.com/
+    //AppID请自己申请，并同步更改Info里的URL Types
+#warning 此处的AppID要自己改
+    _tencentOAuth = [[TencentOAuth alloc]initWithAppId:@"1108611" andDelegate:self];
+    
+    //可以不写
+    _tencentOAuth.redirectURI = @"www.qq.com";
+    
+    _permissions = [NSArray arrayWithObjects:@"get_user_info",@"get_simple_userinfo", @"add_t", nil];
+    
+    [_tencentOAuth authorize:_permissions inSafari:NO];
+    
+    
+    
+    
+    
+    
     return YES;
 }
+
+
+//回到App时该回调有走
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation{
+    return [TencentOAuth HandleOpenURL:url];
+}
+
+
+- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url{
+    return [TencentOAuth HandleOpenURL:url];
+}
+
+
+/*
+- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
+{
+#if __QQAPI_ENABLE__
+    [QQApiInterface handleOpenURL:url delegate:(id)[QQAPIDemoEntry class]];
+#endif
+    if (YES == [TencentOAuth CanHandleOpenURL:url])
+    {
+        return [TencentOAuth HandleOpenURL:url];
+    }
+    return YES;
+}
+*/
+
+
+//登录功能没添加，但调用TencentOAuth相关方法进行分享必须添加<TencentSessionDelegate>，则以下方法必须实现，尽管并不需要实际使用它们
+//登录成功
+- (void)tencentDidLogin
+{
+//    _labelTitle.text = @"登录完成";
+    if (_tencentOAuth.accessToken && 0 != [_tencentOAuth.accessToken length])
+    {
+        // 记录登录用户的OpenID、Token以及过期时间
+//        _labelAccessToken.text = _tencentOAuth.accessToken;
+    }
+    else
+    {
+//        _labelAccessToken.text = @"登录不成功 没有获取accesstoken";
+    }
+}
+
+
+//非网络错误导致登录失败
+-(void)tencentDidNotLogin:(BOOL)cancelled
+{
+    if (cancelled)
+    {
+//        _labelTitle.text = @"用户取消登录";
+    }
+    else
+    {
+//        _labelTitle.text = @"登录失败";
+    }
+}
+
+//网络错误导致登录失败
+-(void)tencentDidNotNetWork
+{
+//    _labelTitle.text=@"无网络连接，请设置网络";
+}
+
+
+
+
+
+
+
 
 
 - (void)applicationWillResignActive:(UIApplication *)application {
